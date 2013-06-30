@@ -1,11 +1,13 @@
 source 'https://rubygems.org'
 
 gem 'tweetstream'
+gem 'twitter'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '4.0.0'
 gem 'mysql2'
 gem 'haml', '~> 4.0'
+gem 'htmlentities'
 
 # Use SCSS for stylesheets
 gem 'sass-rails', '~> 4.0.0'

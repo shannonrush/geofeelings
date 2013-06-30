@@ -11,17 +11,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20130628162255) do
+ActiveRecord::Schema.define(version: 20130630020452) do
 
   create_table "terms", force: true do |t|
     t.string   "word"
-    t.integer  "sense_number"
-    t.float    "pos_score"
-    t.float    "neg_score"
-    t.text     "glossary"
+    t.integer  "score"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  add_index "terms", ["word"], name: "index_terms_on_word", using: :btree
 
   create_table "tweets", force: true do |t|
     t.float    "sentiment"
