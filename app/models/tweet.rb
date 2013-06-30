@@ -24,8 +24,9 @@ class Tweet < ActiveRecord::Base
     neutral = []
     results.each do |result|
       coordinates = Tweet.get_geo(result)
-      sentiment = Tweet.get_sentiment(result.text)
-      tweet = {text:HTMLEntities.new.decode(result.text),lat:coordinates[0],lng:coordinates[1],sentiment:sentiment}
+      tweet_text = HTMLEntities.new.decode(result.text)
+      sentiment = Tweet.get_sentiment(tweet_text)
+      tweet = {text:tweet_text,lat:coordinates[0],lng:coordinates[1],sentiment:sentiment}
       if sentiment > 0
         positive << tweet
       elsif sentiment < 0 
@@ -34,8 +35,6 @@ class Tweet < ActiveRecord::Base
         neutral << tweet
       end
     end
-    debugger
-    puts "tweets"
   end
 
   def self.get_geo(status)
@@ -62,12 +61,15 @@ class Tweet < ActiveRecord::Base
     text = Tweet.text_for_sentiment(tweet_text.clone)
     sentiment = 0
     words = text.split
-    words.each_with_index do |word,index|
-      term = Term.where(word:word).first
-      if term.present?
-        word_sentiment = term.score
-        word_sentiment *= -1 if index > 1 && ["no","not","isn't"].include?(words[index-1])
-        sentiment += word_sentiment
+    terms = {}
+    Term.where(word:words).each{|t|terms[t.word]=t.score}
+    if terms.any?
+      words.each_with_index do |word,index|
+        if terms.keys.include?(word)
+          word_sentiment = terms[word]
+          word_sentiment *= -1 if index > 1 && ["no","not","isn't"].include?(words[index-1])
+          sentiment += word_sentiment
+        end
       end
     end
     return sentiment
