@@ -1,6 +1,5 @@
 class Tweet < ActiveRecord::Base
   require 'tweetstream'
-  require 'debugger'
   require 'htmlentities'
   require 'net/http'
   require 'twitter'
