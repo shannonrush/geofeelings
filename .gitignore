@@ -1,4 +1,2 @@
-config/initializers/tweetstream.rb
-config/initializers/twitter.rb
 log/*
 tmp/*
