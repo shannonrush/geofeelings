@@ -1,5 +1,7 @@
 %div#map
 %div#search
-  =label_tag "Search For:"
-  =text_field_tag "search",nil,id:"search_field"
-  =button_tag "Search Twitter", id:"search_submit"
+  =label_tag 'Search For:',nil,class:'search_start'
+  =text_field_tag 'search',nil,class:'search_start',id:'search_field'
+  =button_tag 'Search Twitter', id:"search_submit", class:'search_start'
+  %p.search_stop
+  =button_tag 'Stop Searching', id:'stop_search', class:'search_stop' 

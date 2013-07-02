@@ -1,5 +1,6 @@
 $(document).ready (function() {
 	equi();
+	search = null;
 });
 
 function equi() {
@@ -42,20 +43,33 @@ function equi() {
 	
 	$("#search_submit").click(function() {
 		svg.selectAll('circle').remove()
+		search = "start";
 		start_search(projection,svg,null);
+		$('p.search_stop').html("Searching for "+$('#search_field').val());
+		$('.search_start').hide();
+		$('.search_stop').show();
+	});
+
+	$("#stop_search").click(function() {
+		search = "stop";
+		$('p.search_stop').html("");
+		$('.search_start').show();
+		$('.search_stop').hide();
 	});
 }
 
 function start_search(projection,svg,max_id) {
-	$.ajax({
-		  type: "POST",
-		  url: "/searches.json",
-	  data: { term: $("#search_field").val(), max_id:max_id }
-	}).done(function( json ) {
-		tweets_to_map(json,projection,svg);
-		var max = json.max_id;
-		start_search(projection,svg,max);
-	});
+	if (search=="start") {
+		$.ajax({
+			  type: "POST",
+			  url: "/searches.json",
+		  data: { term: $("#search_field").val(), max_id:max_id }
+		}).done(function( json ) {
+			tweets_to_map(json,projection,svg);
+			var max = json.max_id;
+			start_search(projection,svg,max);
+		});
+	}
 }
 
 function tweets_to_map(json,projection,svg) {
