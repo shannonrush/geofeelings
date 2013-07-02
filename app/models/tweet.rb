@@ -3,6 +3,8 @@ class Tweet < ActiveRecord::Base
   require 'htmlentities'
   require 'net/http'
   require 'twitter'
+  
+  include Terms
 
   def self.get_tweets
     TweetStream::Client.new.sample do |status|
@@ -64,15 +66,11 @@ class Tweet < ActiveRecord::Base
   def self.get_sentiment(tweet_text)
     words = Tweet.text_for_sentiment(tweet_text.clone)
     sentiment = 0
-    terms = {}
-    Term.where(word:words).each{|t|terms[t.word]=t.score}
-    if terms.any?
-      words.each_with_index do |word,index|
-        if terms.keys.include?(word)
-          word_sentiment = terms[word]
-          word_sentiment *= -1 if index > 1 && ["no","not","isn't"].include?(words[index-1])
-          sentiment += word_sentiment
-        end
+    words.each_with_index do |word,index|
+      if TERMS.keys.include?(word)
+        word_sentiment = TERMS[word]
+        word_sentiment *= -1 if index > 1 && ["no","not","isn't"].include?(words[index-1])
+        sentiment += word_sentiment
       end
     end
     return sentiment
