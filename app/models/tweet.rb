@@ -2,8 +2,8 @@ class Tweet < ActiveRecord::Base
   require 'tweetstream'
   require 'debugger'
   require 'htmlentities'
+  require 'net/http'
   require 'twitter'
-  require 'geocoder'
 
   def self.get_tweets
     TweetStream::Client.new.sample do |status|
@@ -17,59 +17,56 @@ class Tweet < ActiveRecord::Base
     end
   end
 
-  def self.search_tweets(term)
-    results = Twitter.search(term, :lang => "en", :count => 100).results
-    terms = Tweet.get_terms(results)
+  def self.search_tweets(term,max_id=nil)
+    max = max_id.nil? ? nil : max_id.to_i-1
+    results = Twitter.search(term, max_id:max, lang:"en", count:20, result_type:"recent").results
     positive = []
     negative = []
     neutral = []
     results.each do |result|
       coordinates = Tweet.get_geo(result)
-      tweet_text = HTMLEntities.new.decode(result.text)
-      sentiment = Tweet.get_sentiment(tweet_text,terms)
-      tweet = {text:tweet_text,lat:coordinates[0],lng:coordinates[1],sentiment:sentiment}
-      if sentiment > 0
-        positive << tweet
-      elsif sentiment < 0 
-        negative << tweet
-      else
-        neutral << tweet
+      unless coordinates.nil?
+        tweet_text = HTMLEntities.new.decode(result.text)
+        sentiment = Tweet.get_sentiment(tweet_text)
+        tweet = {text:tweet_text,lat:coordinates[0],lng:coordinates[1],sentiment:sentiment}
+        if sentiment > 0
+          positive << tweet
+        elsif sentiment < 0 
+          negative << tweet
+        else
+          neutral << tweet
+        end
       end
     end
-    return {positive:positive,negative:negative,neutral:neutral}
-  end
-
-  def self.get_terms(results)
-    terms = {}
-    all_text = results.collect{|r|HTMLEntities.new.decode(r.text)}.join(" ")
-    words = Tweet.text_for_sentiment(all_text).split.uniq
-    Term.where(word:words).each{|t|terms[t.word]=t.score}
-    return terms
+    return {max_id:results.last.id,positive:positive,negative:negative,neutral:neutral}
   end
 
   def self.get_geo(status)
-    geo = [nil,nil]
+    geo = nil
     if status[:geo].present?
       geo = status[:geo][:coordinates]
     elsif status.user.location.present?
-      location = Geocoder.search(status.user.location)
-      if location.present?
-        geo = [location[0].latitude,location[0].longitude]
+      location = JSON.parse(Net::HTTP.get(URI.parse("http://open.mapquestapi.com/geocoding/v1/address?key=Fmjtd%7Cluub2g01nl%2C8l%3Do5-9ub500&location=#{URI::encode(status.user.location)}")))
+      if location["info"]["statuscode"] == 0 && location["results"][0]["locations"].any?
+        coords = location["results"][0]["locations"][0]["latLng"]
+        geo = [coords["lat"],coords["lng"]]
       end
     end
     return geo
   end
 
   def self.text_for_sentiment(text)
-    text.gsub!(/\?|\.|!|,|#|"|:|;/," ")
     text.downcase!
-    return text
+    text = text.split.reject{|w| w.start_with?("rt","@","http")}.join(" ")
+    text.gsub!(/\?|\.|!|,|#|"|:|;|\/|\(|\)/," ")
+    return text.split
   end
 
-  def self.get_sentiment(tweet_text,terms)
-    text = Tweet.text_for_sentiment(tweet_text.clone)
+  def self.get_sentiment(tweet_text)
+    words = Tweet.text_for_sentiment(tweet_text.clone)
     sentiment = 0
-    words = text.split
+    terms = {}
+    Term.where(word:words).each{|t|terms[t.word]=t.score}
     if terms.any?
       words.each_with_index do |word,index|
         if terms.keys.include?(word)

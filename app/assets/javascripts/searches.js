@@ -42,15 +42,19 @@ function equi() {
 	
 	$("#search_submit").click(function() {
 		svg.selectAll('circle').remove()
-		loading_tweets("start",projection,svg);
-		$.ajax({
-			  type: "POST",
-			  url: "/searches.json",
-		  data: { term: $("#search_field").val() }
-		}).done(function( json ) {
-			loading_tweets("stop",projection,svg);
-			tweets_to_map(json,projection,svg);
-		});
+		start_search(projection,svg,null);
+	});
+}
+
+function start_search(projection,svg,max_id) {
+	$.ajax({
+		  type: "POST",
+		  url: "/searches.json",
+	  data: { term: $("#search_field").val(), max_id:max_id }
+	}).done(function( json ) {
+		tweets_to_map(json,projection,svg);
+		var max = json.max_id;
+		start_search(projection,svg,max);
 	});
 }
 
@@ -73,14 +77,4 @@ function add_tweets(tweets, color, projection, svg) {
 	});
 }
 
-function loading_tweets(toggle,projection,svg) {
-//	var lng = Math.random()*181;
-//	var lat = Math.random()*91;
-	var coords = projection(['105', '40']);
-	svg.append("circle")
-	.attr('cx', coords[0])
-	.attr('cy', coords[1])
-	.attr('r', 2)
-	.style('fill', 'white');
-}
 
